@@ -62,25 +62,31 @@ public class CallGraph {
         String currentFunctionName = null;
 
         @Override
-        public void enterFunctionDecl(CymbolParser.FunctionDeclContext ctx) {
-            currentFunctionName = ctx.ID().getText();
+        public void enterFunctionDeclaration(CymbolParser.FunctionDeclarationContext ctx) {
+            currentFunctionName = ctx.IDENTIFIER().getText();
             graph.nodes.add(currentFunctionName);
         }
 
         @Override
-        public void exitCall(CymbolParser.CallContext ctx) {
-            graph.edge(currentFunctionName, ctx.ID().getText());
+        public void exitPostfixExpressionCall(CymbolParser.PostfixExpressionCallContext ctx) {
+            graph.edge(currentFunctionName, ctx.primaryExpression().getText());
         }
     }
 
     public static void main(String[] args) {
         try {
-            CharStream stream = CharStreams.fromFileName("src/test/resources/examples/t.cymbol");
-            CymbolLexer lexer = new CymbolLexer(stream);
+            CharStream input = null;
+            if (args.length > 0) {
+                System.out.println(args[0]);
+                input = CharStreams.fromFileName(args[0]);
+            } else {
+                input = CharStreams.fromStream(System.in);
+            }
+            CymbolLexer lexer = new CymbolLexer(input);
             CommonTokenStream tokens = new CommonTokenStream(lexer);
             CymbolParser parser = new CymbolParser(tokens);
             ParseTreeWalker walker = new ParseTreeWalker();
-            ParseTree tree = parser.file();
+            ParseTree tree = parser.compilationUnit();
             CymbolListener listener = new CymbolListener();
             walker.walk(listener, tree);
             System.out.println(listener.graph.toString());

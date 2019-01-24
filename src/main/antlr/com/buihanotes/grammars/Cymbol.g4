@@ -4,57 +4,117 @@ grammar Cymbol;
 package com.buihanotes.grammars;
 }
 
-file: (functionDecl | varDecl)+;
+compilationUnit: declaration+;
 
-varDecl: type ID ('=' expr)? ';' ;
-
-type: 'int'
-    | 'float'
-    | 'void'
+declaration
+    : typeSpecifier IDENTIFIER ('=' expression)? ';'   #variableDeclaration
+    | typeSpecifier IDENTIFIER '(' formalParameters? ')' blockStatement #functionDeclaration
     ;
 
-functionDecl: type ID '(' formalParameters? ')' block
-            ;
-
-formalParameters: formalParameter (',' formalParameter)* ;
-
-formalParameter: type ID;
-
-block: '{' stat* '}';
-
-stat: block
-    | varDecl
-    | 'if' expr 'then' stat ('else' stat)?
-    | 'return' expr ';'
-    | expr '=' expr ';'
-    | expr ';'
+formalParameters
+    :   formalParameter (',' formalParameter)*
     ;
 
-expr: ID '(' exprList? ')'     # Call
-    | expr '[' expr ']'        # Index
-    | '-' expr                 # Negate
-    | '!' expr                 # Not
-    | expr ('*'|'/') expr      # MultDiv
-    | expr ('+'|'-') expr      # AddSub
-    | expr '==' expr           # Equal
-    | ID                       # Var
-    | NUMBER                   # Number
-    | '(' expr ')'             # Parens
+formalParameter
+    : typeSpecifier IDENTIFIER    #functionDeclarationParameter
+    | IDENTIFIER                  #functionCallParameter
     ;
 
-exprList: expr (',' expr)*;
-
-ID: LETTER (LETTER|DIGIT)*;
-NUMBER: DIGIT+
-    | DIGIT+ '.' DIGIT*
-    | '.' DIGIT+
+typeSpecifier
+    :   'int'
+    |   'float'
+    |	'void'
     ;
 
-fragment LETTER: [a-zA-Z_];
-fragment DIGIT: [0-9];
+statement
+    :   blockStatement
+    |   jumpStatement
+    |   expressionStatement
+    ;
 
-WS: [ \t\r\n]+ -> skip;
-COMMENT: '/*' .*? '*/' -> skip;
-LINE_COMMENT: '//' .*? '\n' -> skip;
+blockStatement
+    :   '{' (statement | declaration)*  '}'
+    ;
 
+jumpStatement
+    : 'return' expression ';'
+    | 'continue' ';'
+    | 'break' ';'
+    ;
 
+expressionStatement
+    :   expression (',' expression)*
+    ;
+
+selectionStatement
+	: IF '(' expression ')' statement ELSE statement
+	| IF '(' expression ')' statement
+	| SWITCH '(' expression ')' statement
+	;
+
+expression
+    :   additiveExpression
+    |   assignmentExpression
+    ;
+
+assignmentExpression
+    : IDENTIFIER '=' expression ';'
+    | conditionalExpression
+    ;
+
+conditionalExpression
+    : logical_or_expression
+    ;
+
+logical_or_expression
+    : logical_and_expression
+    ;
+
+logical_and_expression
+    : inclusive_or_expression
+    ;
+
+inclusive_or_expression
+    : exclusive_or_expression
+    ;
+
+exclusive_or_expression
+    :
+    ;
+
+additiveExpression
+	:	multiplicativeExpression
+	|   postfixExpression ('+' postfixExpression)*
+	|	postfixExpression ('-' postfixExpression)*
+	;
+
+multiplicativeExpression
+    :   primaryExpression
+    |   postfixExpression ('*' postfixExpression)*
+    |   postfixExpression ('/' postfixExpression)*
+    |   postfixExpression ('%' postfixExpression)*
+    ;
+
+postfixExpression
+    :   primaryExpression                                   #postfixExpressionPrimary
+    |   primaryExpression '(' expressionStatement* ')' ';'  #postfixExpressionCall
+    ;
+
+primaryExpression
+    :   IDENTIFIER            #primaryIdentifier
+    |   CONSTANT              #primaryConstant
+    ;
+
+// LEXER RULES
+fragment
+LETTER: ('a'..'z' | 'A'..'Z');
+CONSTANT: INTEGER | DOUBLE;
+INTEGER: ('1'..'9')('0'..'9')*;
+DOUBLE: ('1'..'9')('0'..'9')* '.' ('1'..'9')('0'..'9')*;
+IDENTIFIER
+    :   LETTER (LETTER | '0'..'9')* ;
+WS:   (' '|'\r'|'\t'|'\n') -> skip;
+SL_COMMENT: '//' ~('\r'|'\n')* '\r'? '\n' -> skip;
+IF: 'if';
+ELSE: 'else';
+SWITCH: 'switch';

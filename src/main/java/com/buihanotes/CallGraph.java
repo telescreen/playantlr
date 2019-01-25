@@ -65,11 +65,12 @@ public class CallGraph {
         public void enterFunctionDeclaration(CymbolParser.FunctionDeclarationContext ctx) {
             currentFunctionName = ctx.IDENTIFIER().getText();
             graph.nodes.add(currentFunctionName);
+
         }
 
         @Override
-        public void exitPostfixExpressionCall(CymbolParser.PostfixExpressionCallContext ctx) {
-            graph.edge(currentFunctionName, ctx.primaryExpression().getText());
+        public void exitFunctionCall(CymbolParser.FunctionCallContext ctx) {
+            graph.edge(currentFunctionName, ctx.IDENTIFIER().getText());
         }
     }
 

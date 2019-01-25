@@ -7,27 +7,24 @@ package com.buihanotes.grammars;
 compilationUnit: declaration+;
 
 declaration
-    : typeSpecifier IDENTIFIER ('=' expression)? ';'   #variableDeclaration
-    | typeSpecifier IDENTIFIER '(' formalParameters? ')' blockStatement #functionDeclaration
-    ;
-
-formalParameters
-    :   formalParameter (',' formalParameter)*
-    ;
-
-formalParameter
-    : typeSpecifier IDENTIFIER    #functionDeclarationParameter
-    | IDENTIFIER                  #functionCallParameter
+    :   typeSpecifier IDENTIFIER initializer? ';'                           #variableDeclaration
+    |   typeSpecifier IDENTIFIER '(' formalParameters? ')' blockStatement   #functionDeclaration
     ;
 
 typeSpecifier
-    :   'int'
-    |   'float'
-    |	'void'
+    :   VOID
+    |   INT
+    |   FLOAT
+    |   BOOLEAN
+    ;
+
+initializer
+    : '=' expression
     ;
 
 statement
     :   blockStatement
+    |   selectionStatement
     |   jumpStatement
     |   expressionStatement
     ;
@@ -37,84 +34,88 @@ blockStatement
     ;
 
 jumpStatement
-    : 'return' expression ';'
-    | 'continue' ';'
-    | 'break' ';'
+    :   'return' expression ';'
+    |   'continue' ';'
+    |   'break' ';'
     ;
 
 expressionStatement
-    :   expression (',' expression)*
+    :   expression ';'
+    |   expression (',' expression)* ';'
     ;
 
 selectionStatement
-	: IF '(' expression ')' statement ELSE statement
-	| IF '(' expression ')' statement
-	| SWITCH '(' expression ')' statement
+	:   'if' '(' conditionalExpression ')' statement
+	|   'if' '(' conditionalExpression ')' statement 'else' statement
+	|   'switch' '(' conditionalExpression ')' statement
 	;
 
 expression
-    :   additiveExpression
-    |   assignmentExpression
+    :   primaryExpression                                      #primaryExp
+    |   IDENTIFIER '(' (expression (',' expression)*)* ')'     #functionCall
+    |   expression ('*' | '/' | '%') expression                #multiplicativeExpression
+    |   expression ('+' | '-') expression                      #additiveExpression
+    |   IDENTIFIER '=' expression ';'                          #assignmentExpression
+    |   conditionalExpression                                  #condition
     ;
 
-assignmentExpression
-    : IDENTIFIER '=' expression ';'
-    | conditionalExpression
-    ;
-
+// Start: Logic expression
 conditionalExpression
-    : logical_or_expression
-    ;
-
-logical_or_expression
-    : logical_and_expression
-    ;
-
-logical_and_expression
-    : inclusive_or_expression
-    ;
-
-inclusive_or_expression
-    : exclusive_or_expression
-    ;
-
-exclusive_or_expression
-    :
-    ;
-
-additiveExpression
-	:	multiplicativeExpression
-	|   postfixExpression ('+' postfixExpression)*
-	|	postfixExpression ('-' postfixExpression)*
-	;
-
-multiplicativeExpression
     :   primaryExpression
-    |   postfixExpression ('*' postfixExpression)*
-    |   postfixExpression ('/' postfixExpression)*
-    |   postfixExpression ('%' postfixExpression)*
+    |   NOT conditionalExpression
+    |   conditionalExpression comparator conditionalExpression
+    |   conditionalExpression binary conditionalExpression
+    ;
+// End: Logic expression
+
+formalParameters
+    :   formalParameter (',' formalParameter)*
     ;
 
-postfixExpression
-    :   primaryExpression                                   #postfixExpressionPrimary
-    |   primaryExpression '(' expressionStatement* ')' ';'  #postfixExpressionCall
+formalParameter
+    :   typeSpecifier IDENTIFIER
     ;
 
 primaryExpression
     :   IDENTIFIER            #primaryIdentifier
-    |   CONSTANT              #primaryConstant
+    |   DECIMAL               #primaryDecimal
+    |   BOOL                  #primaryBool
     ;
+
+comparator
+    : GT | GE | LT | LE | EQ
+    ;
+
+binary
+    : AND | OR | XOR
+    ;
+
+AND: '&&';
+OR: '||';
+XOR: '^';
+NOT: '~';
+GT: '>';
+GE: '>=';
+LT: '<';
+LE: '<=';
+EQ: '==';
+INT: 'int';
+VOID: 'void';
+FLOAT: 'float';
+BOOLEAN: 'bool';
+DECIMAL: INTEGER | DOUBLE;
+BOOL: TRUE | FALSE;
+
+IDENTIFIER: LETTER (LETTER | '0'..'9')* ;
+
+// Skip whitespace
+WS:   (' '|'\r'|'\t'|'\n') -> skip;
+SL_COMMENT: '//' ~('\r'|'\n')* '\r'? '\n' -> skip;
 
 // LEXER RULES
 fragment
 LETTER: ('a'..'z' | 'A'..'Z');
-CONSTANT: INTEGER | DOUBLE;
-INTEGER: ('1'..'9')('0'..'9')*;
-DOUBLE: ('1'..'9')('0'..'9')* '.' ('1'..'9')('0'..'9')*;
-IDENTIFIER
-    :   LETTER (LETTER | '0'..'9')* ;
-WS:   (' '|'\r'|'\t'|'\n') -> skip;
-SL_COMMENT: '//' ~('\r'|'\n')* '\r'? '\n' -> skip;
-IF: 'if';
-ELSE: 'else';
-SWITCH: 'switch';
+INTEGER: ('0'..'9')+;
+DOUBLE: ('0'..'9')* '.' ('0'..'9')*;
+TRUE: 'true';
+FALSE: 'false';

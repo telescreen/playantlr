@@ -49,7 +49,7 @@ public class CymbolParserListener extends CymbolBaseListener {
     }
 
     @Override
-    public void exitFunctionDeclarationParameter(CymbolParser.FunctionDeclarationParameterContext ctx) {
+    public void exitFormalParameter(CymbolParser.FormalParameterContext ctx) {
         System.out.println("line " + ctx.start.getLine() + ": def " + ctx.IDENTIFIER().getText());
         Type parmType = (Type)currentScope.resolve(ctx.typeSpecifier().getText());
         VariableSymbol paramSym = new VariableSymbol(ctx.IDENTIFIER().getText(), parmType);
